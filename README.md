@@ -1,1 +1,1 @@
-# solana-playground
+# Solana playground
