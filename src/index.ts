@@ -1,10 +1,36 @@
 import 'dotenv/config';
 
-import solanaWeb3, { clusterApiUrl } from '@solana/web3.js';
+import solanaWeb3, { PublicKey, clusterApiUrl } from '@solana/web3.js';
+import { struct, u32, u8 } from '@solana/buffer-layout';
+import { bool, publicKey, u64 } from '@solana/buffer-layout-utils';
+
+// Defining RawMint from https://github.com/solana-labs/solana-program-library/blob/48fbb5b7c49ea35848442bba470b89331dea2b2b/token/js/src/state/mint.ts#L31 //
+export interface RawMint {
+  mintAuthorityOption: 1 | 0;
+  mintAuthority: PublicKey;
+  supply: bigint;
+  decimals: number;
+  isInitialized: boolean;
+  freezeAuthorityOption: 1 | 0;
+  freezeAuthority: PublicKey;
+}
+
+// Defining Buffer Layout from https://github.com/solana-labs/solana-program-library/blob/48fbb5b7c49ea35848442bba470b89331dea2b2b/token/js/src/state/mint.ts#L31 //
+
+/** Buffer layout for de/serializing a mint */
+export const MintLayout = struct<RawMint>([
+  u32('mintAuthorityOption'),
+  publicKey('mintAuthority'),
+  u64('supply'),
+  u8('decimals'),
+  bool('isInitialized'),
+  u32('freezeAuthorityOption'),
+  publicKey('freezeAuthority')
+]);
 
 (async () => {
   const publicKey = new solanaWeb3.PublicKey(
-    '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1'
+    '6MWfAt3S9Xu4ybxxgPm6e4LSwuXfyAwGXd5yfUqpox9K'
   );
   const connection = new solanaWeb3.Connection(
     clusterApiUrl('mainnet-beta'),
@@ -13,10 +39,15 @@ import solanaWeb3, { clusterApiUrl } from '@solana/web3.js';
 
   const accountInfo = await connection.getAccountInfo(publicKey, 'confirmed');
   const data = accountInfo.data;
-  const decodedData = data.toString('utf-8');
+  const deserialize = MintLayout.decode(data);
 
-  // Print the decoded data
-  console.log('Decoded Account Data:', decodedData);
+  // Breaking down the response //
+  console.log(deserialize.mintAuthorityOption);
+  console.log(deserialize.mintAuthority.toString());
+  console.log(deserialize.decimals);
+  console.log(deserialize.isInitialized);
+  console.log(deserialize.freezeAuthorityOption);
+  console.log(deserialize.freezeAuthority.toString);
 })();
 
 // (async () => {
